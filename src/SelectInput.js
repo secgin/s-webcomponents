@@ -166,8 +166,15 @@ export default class SelectInput extends HTMLElement {
             this.scrollHighlightedIntoView();
         } else if (e.key === 'Enter') {
             if (this.highlightedIndex >= 0 && this.highlightedIndex < this.filteredOptions.length) {
-                this.input.value = this.filteredOptions[this.highlightedIndex].label;
+                const selected = this.filteredOptions[this.highlightedIndex];
+                this.input.value = selected.label;
                 this.hideDropdown();
+                this.dispatchEvent(new CustomEvent('change', {
+                    detail: {
+                        value: selected.value,
+                        label: selected.label
+                    }
+                }));
             }
         } else if (e.key === 'Escape') {
             this.hideDropdown();
@@ -219,8 +226,15 @@ export default class SelectInput extends HTMLElement {
         ).join('');
         this.dropdown.querySelectorAll('.option').forEach((el, idx) => {
             el.addEventListener('click', () => {
-                this.input.value = this.filteredOptions[idx].label;
+                const selected = this.filteredOptions[idx];
+                this.input.value = selected.label;
                 this.hideDropdown();
+                this.dispatchEvent(new CustomEvent('change', {
+                    detail: {
+                        value: selected.value,
+                        label: selected.label
+                    }
+                }));
             });
         });
     }
@@ -250,4 +264,4 @@ export default class SelectInput extends HTMLElement {
     }
 }
 
-customElements.define('select-input', SelectInput); 
+customElements.define('select-input', SelectInput);
