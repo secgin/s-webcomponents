@@ -63,8 +63,6 @@ export default class SelectInput extends HTMLElement {
                 border-radius: inherit;
                 background: inherit;
                 color: inherit;
-                
-                display: none;
                 max-height: 150px;
                 overflow-y: auto;
                 width: 100%;
@@ -73,6 +71,15 @@ export default class SelectInput extends HTMLElement {
                 left: -1px;          
                 z-index: 10;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                opacity: 0;
+                pointer-events: none;
+                transform: translateY(-8px);
+                transition: opacity 0.2s, transform 0.2s;
+            }
+            .dropdown.open {
+                opacity: 1;
+                pointer-events: auto;
+                transform: translateY(0);
             }
             .option {
                 padding: var(--select-input-option-padding);
@@ -176,11 +183,11 @@ export default class SelectInput extends HTMLElement {
 
     showDropdown() {
         window.dispatchEvent(new CustomEvent('select-input-opened', {detail: {sender: this}}));
-        this.dropdown.style.display = 'block';
+        this.dropdown.classList.add('open');
     }
 
     hideDropdown() {
-        this.dropdown.style.display = 'none';
+        this.dropdown.classList.remove('open');
     }
 
     loadOptions() {
@@ -220,7 +227,7 @@ export default class SelectInput extends HTMLElement {
 
     handleToggleClick(e) {
         e.stopPropagation();
-        if (this.dropdown.style.display === 'none' || !this.dropdown.style.display) {
+        if (!this.dropdown.classList.contains('open')) {
             this.showDropdown();
             this.input.focus();
         } else {
