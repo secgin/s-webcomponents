@@ -5,6 +5,10 @@ export default class SelectInput extends HTMLElement {
     static getStyles() {
         return `
         <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
             :host {
                 --select-input-option-padding: 4px 4px;
                 --select-input-option-hover-bg: #f0f0f0;
@@ -90,16 +94,69 @@ export default class SelectInput extends HTMLElement {
             .option.highlighted {
                 background: var(--select-input-option-hover-bg, #f0f0f0);
             }
+            .loading-box {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+            }
+            .spinner {
+                width: 16px;
+                height: 16px;
+                border: 2px solid #ccc;
+                border-top: 2px solid #333;
+                border-radius: 50%;
+                display: inline-block;
+                animation: spin 1s linear infinite;
+            }
+            .error-box {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+                color: #c00;
+            }
+            .error-icon {
+                width: 16px;
+                height: 16px;
+                display: inline-block;
+                background: url('data:image/svg+xml;utf8,<svg fill="%23c00" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8"/><rect x="7" y="4" width="2" height="6" fill="white"/><rect x="7" y="11" width="2" height="2" fill="white"/></svg>') no-repeat center/contain;
+            }
+            .empty-box {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+                color: #888;
+            }
+            .empty-icon {
+                width: 16px;
+                height: 16px;
+                display: inline-block;
+                background: url('data:image/svg+xml;utf8,<svg fill="%23888" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8"/><rect x="4" y="7" width="8" height="2" fill="white"/></svg>') no-repeat center/contain;
+            }
         </style>`;
     }
 
     static getTemplate() {
         return `
         <div class="input-wrapper">
-            <input type="text" placeholder="Seçiniz..." aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="dropdown-list" />
+            <input 
+                type="text" 
+                name="filterValue" 
+                placeholder="Seçiniz..." 
+                autoComplete="off"
+                aria-autocomplete="list" 
+                aria-haspopup="listbox" 
+                aria-expanded="false" 
+                aria-controls="dropdown-list" />
             <button class="toggle-btn" tabindex="-1" aria-label="Aç/Kapat">▼</button>
         </div>
         <div class="dropdown" id="dropdown-list" role="listbox" tabindex="-1"></div>`;
+    }
+
+    static get observedAttributes() {
+        return ['api-url', 'api-config'];
     }
 
     constructor() {
@@ -108,7 +165,61 @@ export default class SelectInput extends HTMLElement {
         this.options = [];
         this.filteredOptions = [];
         this.highlightedIndex = -1;
+        this.loading = false;
+        this.abortController = null;
+        this.debounceTimeout = null;
         this.shadowRoot.innerHTML = `${SelectInput.getStyles()}${SelectInput.getTemplate()}`;
+    }
+
+    async fetchOptionsFromApi(url, searchValue = '') {
+        if (this.abortController)
+            this.abortController.abort();
+
+        this.abortController = new AbortController();
+        this.loading = true;
+        this.error = false;
+        this.filteredOptions = [];
+        this.renderOptions();
+        this.showDropdown();
+        try {
+            let apiUrl;
+            let paramName = 'search';
+            let mapperFn = null;
+            let filterFn = null;
+            if (this.hasAttribute('api-config')) {
+                const configName = this.getAttribute('api-config');
+                const config = window[configName];
+                console.log('API Config:', config);
+                if (config) {
+                    paramName = config.paramName || paramName;
+                    mapperFn = config.mapper;
+                    filterFn = config.filter;
+                }
+            }
+            apiUrl = new URL(url, window.location.origin);
+            apiUrl.searchParams.set(paramName, searchValue);
+            const response = await fetch(apiUrl.toString(), { signal: this.abortController.signal });
+            let data = await response.json();
+            if (typeof mapperFn === 'function')
+                data = mapperFn(data, searchValue);
+            
+            if (typeof filterFn === 'function')
+                data = filterFn(data, searchValue);
+        
+            if (Array.isArray(data)) {
+                this.options = data;
+                this.filteredOptions = [...this.options];
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError')
+                this.error = true;
+
+            console.error('Error fetching options:', err);
+        }
+        finally {
+            this.loading = false;
+            this.renderOptions();
+        }
     }
 
     connectedCallback() {
@@ -120,7 +231,10 @@ export default class SelectInput extends HTMLElement {
         document.addEventListener('click', this.handleDocumentClick);
         this.addEventListener('focusout', this.handleFocusOut);
 
-        this.input.addEventListener('focus', () => this.showDropdown());
+        this.input.addEventListener('focus', () => {
+            if (!this.hasAttribute('api-url'))
+                this.showDropdown();
+        });
         this.input.addEventListener('input', (e) => this.filterOptions(e.target.value));
         this.input.addEventListener('keydown', this.handleKeyDown);
 
@@ -219,18 +333,42 @@ export default class SelectInput extends HTMLElement {
     }
 
     filterOptions(value) {
-        this.filteredOptions = this.options.filter(opt =>
-            opt.label.toLowerCase().includes(value.toLowerCase())
-        );
-        this.renderOptions();
-        this.showDropdown();
+        if (this.hasAttribute('api-url')) {
+            clearTimeout(this.debounceTimeout);
+            if (value.length >= 3) {
+                //this.error = false;
+                //this.renderOptions();
+                this.debounceTimeout = setTimeout(() => {
+                    this.fetchOptionsFromApi(this.getAttribute('api-url'), value);
+                }, 400);
+            } else {
+                //this.filteredOptions = [];
+                //this.error = false;
+                //this.renderOptions();
+            }
+        } else {
+            this.filteredOptions = this.options.filter(opt =>
+                opt.label.toLowerCase().includes(value.toLowerCase())
+            );
+            this.renderOptions();
+            this.showDropdown();
+        }
     }
 
     renderOptions() {
-        if (this.filteredOptions.length === 0) {
-            this.dropdown.innerHTML = '<div>Sonuç yok</div>';
+        if (this.loading) {
+            this.dropdown.innerHTML = '<div class="loading-box"><span class="spinner"></span>Yükleniyor...</div>';
             return;
         }
+        if (this.error) {
+            this.dropdown.innerHTML = '<div class="error-box"><span class="error-icon"></span>Seçenekler yüklenmedi</div>';
+            return;
+        }
+        if (this.filteredOptions.length === 0) {
+            this.dropdown.innerHTML = '<div class="empty-box"><span class="empty-icon"></span>Sonuç yok</div>';
+            return;
+        }
+       
         this.dropdown.innerHTML = this.filteredOptions.map((opt, idx) =>
             `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" role="option" id="option-${idx}" aria-selected="${idx === this.highlightedIndex}" data-value="${opt.value}">${opt.label}</div>`
         ).join('');

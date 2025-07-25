@@ -29,8 +29,14 @@
 
 
     <br /><br /><br />
+    <h1>API Url SelectInput Demo</h1>
+    <select-input api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
+    </select-input>
+
+
+    <br /><br /><br />
     <h1>SelectInput Demo 2</h1>
-    <select-input class="form-control">
+    <select-input api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" class="form-control" style="--select-input-padding: .5rem 1rem">
         <select-input-option value="elma" label="Elma">elma</select-input-option>
         <select-input-option value="armut" label="Armut"></select-input-option>
         <select-input-option value="muz" label="Muz"></select-input-option>
@@ -44,6 +50,12 @@
         document.querySelector('select-input').addEventListener('change', (e) => {
             console.log('Seçilen değer:', e.detail);
         });
+
+        window.mySelectConfig = {
+            paramName: 'q',
+            mapper: data => data.map(item => ({ value: item.id, label: item.title })),
+            filter: (data, searchValue) => data.filter(item => item.label.toLowerCase().includes(searchValue.toLowerCase()))
+        };
     </script>
 </body>
 
