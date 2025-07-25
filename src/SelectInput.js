@@ -96,15 +96,15 @@ export default class SelectInput extends HTMLElement {
     static getTemplate() {
         return `
         <div class="input-wrapper">
-            <input type="text" placeholder="Seçiniz..." />
+            <input type="text" placeholder="Seçiniz..." aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="dropdown-list" />
             <button class="toggle-btn" tabindex="-1" aria-label="Aç/Kapat">▼</button>
         </div>
-        <div class="dropdown" tabindex="-1"></div>`;
+        <div class="dropdown" id="dropdown-list" role="listbox" tabindex="-1"></div>`;
     }
 
     constructor() {
         super();
-        this.attachShadow({mode: 'open'});
+        this.attachShadow({ mode: 'open' });
         this.options = [];
         this.filteredOptions = [];
         this.highlightedIndex = -1;
@@ -155,6 +155,7 @@ export default class SelectInput extends HTMLElement {
             }
             this.renderOptions();
             this.scrollHighlightedIntoView();
+            this.input.setAttribute('aria-activedescendant', `option-${this.highlightedIndex}`);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             this.showDropdown();
@@ -164,6 +165,7 @@ export default class SelectInput extends HTMLElement {
             }
             this.renderOptions();
             this.scrollHighlightedIntoView();
+            this.input.setAttribute('aria-activedescendant', `option-${this.highlightedIndex}`);
         } else if (e.key === 'Enter') {
             if (this.highlightedIndex >= 0 && this.highlightedIndex < this.filteredOptions.length) {
                 const selected = this.filteredOptions[this.highlightedIndex];
@@ -184,17 +186,25 @@ export default class SelectInput extends HTMLElement {
     scrollHighlightedIntoView() {
         const optionEls = this.dropdown.querySelectorAll('.option');
         if (this.highlightedIndex >= 0 && optionEls[this.highlightedIndex]) {
-            optionEls[this.highlightedIndex].scrollIntoView({block: 'nearest'});
+            optionEls[this.highlightedIndex].scrollIntoView({ block: 'nearest' });
         }
     }
 
     showDropdown() {
-        window.dispatchEvent(new CustomEvent('select-input-opened', {detail: {sender: this}}));
+        window.dispatchEvent(new CustomEvent('select-input-opened', { detail: { sender: this } }));
         this.dropdown.classList.add('open');
+        this.input.setAttribute('aria-expanded', 'true');
+        if (this.highlightedIndex >= 0) {
+            this.input.setAttribute('aria-activedescendant', `option-${this.highlightedIndex}`);
+        } else {
+            this.input.removeAttribute('aria-activedescendant');
+        }
     }
 
     hideDropdown() {
         this.dropdown.classList.remove('open');
+        this.input.setAttribute('aria-expanded', 'false');
+        this.input.removeAttribute('aria-activedescendant');
     }
 
     loadOptions() {
@@ -222,7 +232,7 @@ export default class SelectInput extends HTMLElement {
             return;
         }
         this.dropdown.innerHTML = this.filteredOptions.map((opt, idx) =>
-            `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" data-value="${opt.value}">${opt.label}</div>`
+            `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" role="option" id="option-${idx}" aria-selected="${idx === this.highlightedIndex}" data-value="${opt.value}">${opt.label}</div>`
         ).join('');
         this.dropdown.querySelectorAll('.option').forEach((el, idx) => {
             el.addEventListener('click', () => {
