@@ -301,8 +301,9 @@ export default class Select extends HTMLElement {
                 const name = this.getAttribute('name');
 
                 if (this.isMulti) {
-                    const values = this.selectedValues.map(v => v.value);
-                    values.forEach(val => e.formData.append(`${name}[]`, val));
+                    const values = this.selectedValues
+                    .map(v => v.value)
+                    .forEach((val, index) => e.formData.append(`${name}[${index}]`, val));
                 } else {
                     const value = this.selectedValues[0]?.value || '';
                     e.formData.append(name, value);
@@ -358,6 +359,12 @@ export default class Select extends HTMLElement {
     handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
+
+            if (!this.hasAttribute('open')) {
+                if (this.hasAttribute('api-url') && this.options.length === 0)
+                    this.fetchOptionsFromApi();
+            }
+
             this.showDropdown();
             this.highlightedIndex++;
             if (this.highlightedIndex === this.filteredOptions.length) {
