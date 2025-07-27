@@ -38,6 +38,9 @@ export default class Select extends HTMLElement {
                 border: none;
                 border-radius: inherit;         
             }
+            :host([multi-select]) .input-wrapper {
+                flex-wrap: wrap;               
+            }
             input[type="text"] {
                 border-radius: inherit;
                 color: inherit;
@@ -92,6 +95,14 @@ export default class Select extends HTMLElement {
                 padding: var(--s-select-option-padding);
                 cursor: pointer;
                 color: var(--s-select-option-color);
+            }    
+            :host([multi-select]) .option:before {
+                content: '';
+                display: inline-block;
+                width: 16px;
+            }
+            :host([multi-select]) .option.selected:before {
+                content: '\\2713';
             }
             .option:hover, 
             .option.highlighted {
@@ -141,6 +152,24 @@ export default class Select extends HTMLElement {
                 height: 24px;
                 display: inline-block;
                 background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23888" class="bi bi-inbox" viewBox="0 0 16 16"><path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438zM3.809 3.563A1.5 1.5 0 0 1 4.981 3h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374z"/></svg>') no-repeat center/contain;
+            }
+
+            .chip {
+                display:flex;
+                align-items: center;
+                background:#e0e0e0;
+                border-radius:inherit;
+                padding:0 3px;
+                margin:1px 2px;
+                font-size:.95em;
+                vertical-align:middle;
+            }
+            .chip-remove {
+                margin-left:4px;
+                cursor:pointer;
+            }
+            .chip:hover .chip-remove {
+                color: #000;
             }
 
             /* Mobil görünüm için */
@@ -196,13 +225,31 @@ export default class Select extends HTMLElement {
         <div class="dropdown" id="dropdown-list" role="listbox" tabindex="-1"></div>`;
     }
 
+    static getOptionsTemplate(opt, highlightedIndex, idx, isSelected) {
+        return `
+        <div 
+            class="option${idx === highlightedIndex ? ' highlighted' : ''}${isSelected ? ' selected' : ''}" 
+            role="option" id="option-${idx}" 
+            aria-selected="${isSelected}" 
+            data-value="${opt.value}">
+                ${opt.content ?? opt.label}
+        </div>`;
+    }
+
+    static getChipTemplate(value, label) {
+        return `
+        <span class="chip" data-value="${value}">${label}
+            <span class="chip-remove">&times;</span>
+        </span>`;
+    }
+
     static get observedAttributes() {
         return ['api-url', 'api-config'];
     }
 
     constructor() {
         super();
-        this.attachShadow({ mode: 'open' });
+        this.attachShadow({ mode: 'open', delegatesFocus: true });
         this.options = [];
         this.filteredOptions = [];
         this.highlightedIndex = -1;
@@ -210,7 +257,8 @@ export default class Select extends HTMLElement {
         this.error = false;
         this.firsLoaded = false;
 
-        this._lastSelectedValue = '';
+        this.selectedValues = [];
+        this.isMulti = this.hasAttribute('multi-select');
 
         this.dataSource = new DataSource();
         if (this.hasAttribute('api-config')) {
@@ -239,15 +287,6 @@ export default class Select extends HTMLElement {
         });
         this.input.addEventListener('input', (e) => {
             this.filterOptions(e.target.value);
-            if (e.target.value === '') {
-                this._lastSelectedValue = '';
-                this.dispatchEvent(new CustomEvent('change', {
-                    detail: {
-                        value: '',
-                        label: ''
-                    }
-                }));
-            }
         });
         this.input.addEventListener('keydown', this.handleKeyDown);
 
@@ -256,17 +295,18 @@ export default class Select extends HTMLElement {
         this.loadOptions();
         this.renderOptions();
 
-        this.addEventListener('change', (ev) => {
-            if (ev.detail && ev.detail.value !== undefined) {
-                this._lastSelectedValue = ev.detail.value;
-            }
-        });
-
         var form = this.closest('form');
         if (form && this.getAttribute('name')) {
             form.addEventListener('formdata', (e) => {
-                var selectedValue = this._lastSelectedValue || '';
-                e.formData.append(this.getAttribute('name'), selectedValue);
+                const name = this.getAttribute('name');
+
+                if (this.isMulti) {
+                    const values = this.selectedValues.map(v => v.value);
+                    values.forEach(val => e.formData.append(`${name}[]`, val));
+                } else {
+                    const value = this.selectedValues[0]?.value || '';
+                    e.formData.append(name, value);
+                }
             });
         }
     }
@@ -339,17 +379,37 @@ export default class Select extends HTMLElement {
         } else if (e.key === 'Enter') {
             if (this.highlightedIndex >= 0 && this.highlightedIndex < this.filteredOptions.length) {
                 const selected = this.filteredOptions[this.highlightedIndex];
-                this.input.value = selected.label;
-                this.hideDropdown();
-                this.dispatchEvent(new CustomEvent('change', {
-                    detail: {
-                        value: selected.value,
-                        label: selected.label
+                const exists = this.selectedValues.find(v => v.value == selected.value);
+                if (this.isMulti) {
+                    const optionEl = this.dropdown.querySelector(`.option[data-value="${selected.value}"]`);
+
+                    if (exists) {
+                        this.selectedValues = this.selectedValues.filter(v => v.value != selected.value);
+                        optionEl?.classList.remove('selected');
+                    } else {
+                        this.selectedValues.push(selected);
+                        optionEl.classList.add('selected');
                     }
-                }));
+                    this.updateInputDisplay();
+                    this.dispatchChange();
+                } else {
+                    this.selectedValues = [selected];
+                    this.input.value = selected.label;
+                    this.hideDropdown();
+                    this.dispatchChange();
+                }
             }
         } else if (e.key === 'Escape') {
             this.hideDropdown();
+        } else if (e.key === 'Backspace') {
+            if (this.isMulti && this.input.value === '' && this.selectedValues.length > 0) {
+                var removingOption = this.selectedValues.pop();
+                const optionEl = this.dropdown.querySelector(`.option[data-value="${removingOption.value}"]`);
+                if (optionEl)
+                    optionEl.classList.remove('selected');
+                this.updateInputDisplay();
+                this.dispatchChange();
+            }
         }
     };
 
@@ -434,22 +494,73 @@ export default class Select extends HTMLElement {
             return;
         }
 
-        this.dropdown.innerHTML = this.filteredOptions.map((opt, idx) =>
-            `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" role="option" id="option-${idx}" aria-selected="${idx === this.highlightedIndex}" data-value="${opt.value}">${opt.content ?? opt.label}</div>`
-        ).join('');
+        this.dropdown.innerHTML = this.filteredOptions
+            .map((opt, idx) => {
+                const isSelected = this.selectedValues.some(v => v.value === opt.value);
+                return Select.getOptionsTemplate(opt, this.highlightedIndex, idx, isSelected);
+            })
+            .join('');
+
         this.dropdown.querySelectorAll('.option').forEach((el, idx) => {
             el.addEventListener('click', () => {
                 const selected = this.filteredOptions[idx];
-                this.input.value = selected.label;
-                this.hideDropdown();
-                this.dispatchEvent(new CustomEvent('change', {
-                    detail: {
-                        value: selected.value,
-                        label: selected.label
+                const exists = this.selectedValues.find(v => v.value == selected.value);
+                if (this.isMulti) {
+                    if (exists) {
+                        this.selectedValues = this.selectedValues.filter(v => v.value != selected.value);
+                        el.classList.remove('selected');
+                    } else {
+                        this.selectedValues.push(selected);
+                        el.classList.add('selected');
                     }
-                }));
+                    this.updateInputDisplay();
+                    this.dispatchChange();
+                } else {
+                    this.selectedValues = [selected];
+                    this.input.value = selected.label;
+                    this.hideDropdown();
+                    this.dispatchChange();
+                }
             });
         });
+    }
+
+    updateInputDisplay() {
+        if (!this.isMulti) {
+            if (this.selectedValues.length > 0) {
+                this.input.value = this.selectedValues[0].label;
+            } else {
+                this.input.value = '';
+            }
+            this.input.parentNode.querySelectorAll('.chip').forEach(chip => chip.remove());
+            return;
+        }
+
+        const chips = this.selectedValues.map(v => Select.getChipTemplate(v.value, v.label)).join('');
+        this.input.value = '';
+        this.input.style.display = 'inline-block';
+        this.input.parentNode.querySelectorAll('.chip').forEach(chip => chip.remove());
+        this.input.insertAdjacentHTML('beforebegin', chips);
+        this.input.parentNode.querySelectorAll('.chip-remove').forEach(el => {
+            el.onclick = (e) => {
+                const chipEl = el.parentElement;
+                const val = chipEl.getAttribute('data-value');
+                this.selectedValues = this.selectedValues.filter(v => v.value != val);
+                const optionEl = this.dropdown.querySelector(`.option[data-value="${val}"]`);
+                if (optionEl)
+                    optionEl.classList.remove('selected');
+                this.updateInputDisplay();
+                this.dispatchChange();
+            };
+        });
+    }
+
+    dispatchChange() {
+        this.dispatchEvent(new CustomEvent('change', {
+            detail: {
+                selectedOptions: this.selectedValues
+            }
+        }));
     }
 
     handleToggleClick(e) {
@@ -465,9 +576,10 @@ export default class Select extends HTMLElement {
         }
     }
 
-    handleFocusOut() {
+    handleFocusOut = () => {
         setTimeout(() => {
-            if (!this.shadowRoot.activeElement) {
+            if (this.hasAttribute('open') &&
+                !this.contains(this.shadowRoot.activeElement) && !this.shadowRoot.contains(this.shadowRoot.activeElement)) {
                 this.hideDropdown();
             }
         }, 0);
