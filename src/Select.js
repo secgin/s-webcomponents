@@ -25,6 +25,9 @@ export default class Select extends HTMLElement {
                 background: #fff;
                 color: #333;
             }
+            :host(:focus-within) {
+                outline: 1px solid var(--s-money-input-focus-color, #007bff);
+            }
             .input-wrapper {
             padding-right: 30px;
                 display: flex;
