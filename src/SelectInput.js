@@ -15,15 +15,12 @@ export default class SelectInput extends HTMLElement {
                 --select-input-option-hover-bg: #f0f0f0;
                 --select-input-option-color: inherit;
                 --select-input-padding: 2px 4px;
-                
                 position: relative !important;
                 display: inline-block !important;
                 padding: 0 !important;
-                
                 box-sizing: border-box;
                 border: 1px solid #ccc;
                 border-radius: .2rem;
-                
                 background: #fff;
                 color: #333;
             }
@@ -31,7 +28,6 @@ export default class SelectInput extends HTMLElement {
                 display: flex;
                 align-items: stretch;
                 overflow: hidden;
-                
                 font-family: inherit;
                 font-size: inherit;
                 font-weight: inherit;
@@ -48,7 +44,6 @@ export default class SelectInput extends HTMLElement {
                 font-size: inherit;
                 font-weight: inherit;
                 font-style: inherit;
-                
                 flex: 1;
                 border: none;
                 outline: none;
@@ -141,6 +136,36 @@ export default class SelectInput extends HTMLElement {
                 display: inline-block;
                 background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23888" class="bi bi-inbox" viewBox="0 0 16 16"><path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438zM3.809 3.563A1.5 1.5 0 0 1 4.981 3h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374z"/></svg>') no-repeat center/contain;
             }
+
+            /* Mobil görünüm için */
+            @media (max-width: 600px) {
+                :host {
+                    font-size: 1.1rem;
+                }
+                .input-wrapper {
+                    font-size: 1.1rem;
+                }
+                .dropdown {
+                    position: fixed !important;
+                    left: 50% !important;
+                    top: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    width: 92vw !important;
+                    max-width: 420px;
+                    max-height: 60vh !important;
+                    border-radius: 1rem;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+                    z-index: 9999;
+                }
+                .option {
+                    font-size: 1.1rem;
+                    padding: 18px 16px;
+                }
+                .loading-box, .error-box, .empty-box {
+                    font-size: 1rem;
+                    padding: 18px 16px;
+                }
+            }
         </style>`;
     }
 
@@ -156,7 +181,11 @@ export default class SelectInput extends HTMLElement {
                 aria-haspopup="listbox" 
                 aria-expanded="false" 
                 aria-controls="dropdown-list" />
-            <button class="toggle-btn" tabindex="-1" aria-label="Aç/Kapat">▼</button>
+            <button class="toggle-btn" tabindex="-1" aria-label="Aç/Kapat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+  <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+</svg>    
+            </button>
         </div>
         <div class="dropdown" id="dropdown-list" role="listbox" tabindex="-1"></div>`;
     }
@@ -172,6 +201,8 @@ export default class SelectInput extends HTMLElement {
         this.filteredOptions = [];
         this.highlightedIndex = -1;
         this.loading = false;
+        this.error = false;
+        this.firsLoaded = false;
 
         this._lastSelectedValue = '';
 
@@ -257,6 +288,7 @@ export default class SelectInput extends HTMLElement {
                     this.renderOptions();
                     this.showDropdown();
                 });
+            this.firsLoaded = true;
             this.filteredOptions = [...this.options];
         } catch (err) {
             this.error = true;
@@ -316,22 +348,27 @@ export default class SelectInput extends HTMLElement {
         }
     };
 
-    scrollHighlightedIntoView() {
-        const optionEls = this.dropdown.querySelectorAll('.option');
-        if (this.highlightedIndex >= 0 && optionEls[this.highlightedIndex]) {
-            optionEls[this.highlightedIndex].scrollIntoView({ block: 'nearest' });
-        }
-    }
-
     showDropdown() {
         window.dispatchEvent(new CustomEvent('select-input-opened', { detail: { sender: this } }));
-
-        this.setAttribute('open', '');         
+        this.setAttribute('open', '');
         this.input.setAttribute('aria-expanded', 'true');
         if (this.highlightedIndex >= 0) {
             this.input.setAttribute('aria-activedescendant', `option-${this.highlightedIndex}`);
         } else {
             this.input.removeAttribute('aria-activedescendant');
+        }
+
+        if (window.innerWidth <= 600 && !this._backdrop) {
+            this._backdrop = document.createElement('div');
+            this._backdrop.className = 'modal-backdrop';
+            Object.assign(this._backdrop.style, {
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.2)',
+                zIndex: 9998
+            });
+            this._backdrop.addEventListener('click', () => this.hideDropdown());
+            document.body.appendChild(this._backdrop);
         }
     }
 
@@ -339,6 +376,18 @@ export default class SelectInput extends HTMLElement {
         this.removeAttribute('open');
         this.input.setAttribute('aria-expanded', 'false');
         this.input.removeAttribute('aria-activedescendant');
+
+        if (this._backdrop) {
+            this._backdrop.remove();
+            this._backdrop = null;
+        }
+    }
+
+    scrollHighlightedIntoView() {
+        const optionEls = this.dropdown.querySelectorAll('.option');
+        if (this.highlightedIndex >= 0 && optionEls[this.highlightedIndex]) {
+            optionEls[this.highlightedIndex].scrollIntoView({ block: 'nearest' });
+        }
     }
 
     loadOptions() {
@@ -374,7 +423,8 @@ export default class SelectInput extends HTMLElement {
             return;
         }
         if (this.filteredOptions.length === 0) {
-            this.dropdown.innerHTML = '<div class="empty-box"><span class="empty-icon"></span>Sonuç yok</div>';
+            if (this.firsLoaded)
+                this.dropdown.innerHTML = '<div class="empty-box"><span class="empty-icon"></span>Sonuç yok</div>';
             return;
         }
 
