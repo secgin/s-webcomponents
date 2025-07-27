@@ -15,11 +15,10 @@
         }
 
         s-select {
-            /*--s-select-padding: 0.5rem;*/
+            /*--s-select-padding: 0.5rem;
             --s-select-option-padding: 0.5rem;
             
-            border-radius: 0;
-            width: 100%;
+            border-radius: 0;*/
         }
     </style>
 </head>
@@ -34,6 +33,7 @@
             <s-option value="cilek" label="Çilek"></s-option>
             <s-option value="uzum" label="Üzüm"></s-option>
         </s-select>
+        
         <br /><br /><br />
         <h2>Multi Select</h2>
         <s-select name="meyve2" multi-select>
@@ -59,18 +59,12 @@
         </s-select>
 
         <br /><br /><br />
-        <h1>SelectInput Demo 2</h1>
-        <s-select name="urun2" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig"
-            class="form-control" style="--s-select-padding: .5rem 1rem">
-            <s-option value="elma" label="Elma">elma</s-option>
-            <s-option value="armut" label="Armut"></s-option>
-            <s-option value="muz" label="Muz"></s-option>
-            <s-option value="karpuz" label="Karpuz"></s-option>
-            <s-option value="cilek" label="Çilek"></s-option>
-            <s-option value="uzum" label="Üzüm"></s-option>
-        </s-select>
+        <h2>Money Input</h1>
+        <s-money-input name="money1" value="1000" currency="TRY"></s-money-input>
 
-        <input type="text" name="input1" placeholder="Normal input" class="form-control" />
+        <br /><br /><br />
+        <h2>Money Input</h1>
+        <s-money-input name="money2" value="1000" currency="TRY" exchange-currency="USD"></s-money-input>
         <button type="submit">Send</button>
     </form>
 
