@@ -1,4 +1,5 @@
 import SelectInputOption from './SelectInputOption.js';
+import DataSource from './DataSource.js';
 
 export default class SelectInput extends HTMLElement {
 
@@ -99,6 +100,7 @@ export default class SelectInput extends HTMLElement {
                 align-items: center;
                 gap: 8px;
                 padding: 8px;
+                font-size: .8rem;
             }
             .spinner {
                 width: 16px;
@@ -115,6 +117,7 @@ export default class SelectInput extends HTMLElement {
                 gap: 8px;
                 padding: 8px;
                 color: #c00;
+                font-size: .8rem;
             }
             .error-icon {
                 width: 16px;
@@ -125,15 +128,17 @@ export default class SelectInput extends HTMLElement {
             .empty-box {
                 display: flex;
                 align-items: center;
+                justify-content: center;
                 gap: 8px;
                 padding: 8px;
                 color: #888;
+                font-size: .8rem;
             }
             .empty-icon {
-                width: 16px;
-                height: 16px;
+                width: 24px;
+                height: 24px;
                 display: inline-block;
-                background: url('data:image/svg+xml;utf8,<svg fill="%23888" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="8"/><rect x="4" y="7" width="8" height="2" fill="white"/></svg>') no-repeat center/contain;
+                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23888" class="bi bi-inbox" viewBox="0 0 16 16"><path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438zM3.809 3.563A1.5 1.5 0 0 1 4.981 3h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374z"/></svg>') no-repeat center/contain;
             }
         </style>`;
     }
@@ -166,60 +171,19 @@ export default class SelectInput extends HTMLElement {
         this.filteredOptions = [];
         this.highlightedIndex = -1;
         this.loading = false;
-        this.abortController = null;
-        this.debounceTimeout = null;
+
+        this._lastSelectedValue = '';
+
+        this.dataSource = new DataSource();
+        if (this.hasAttribute('api-config')) {
+            const configName = this.getAttribute('api-config');
+            const config = window[configName];
+            if (config) {
+                this.dataSource.setConfig(config);
+            }
+        }
+
         this.shadowRoot.innerHTML = `${SelectInput.getStyles()}${SelectInput.getTemplate()}`;
-    }
-
-    async fetchOptionsFromApi(url, searchValue = '') {
-        if (this.abortController)
-            this.abortController.abort();
-
-        this.abortController = new AbortController();
-        this.loading = true;
-        this.error = false;
-        this.filteredOptions = [];
-        this.renderOptions();
-        this.showDropdown();
-        try {
-            let apiUrl;
-            let paramName = 'search';
-            let mapperFn = null;
-            let filterFn = null;
-            if (this.hasAttribute('api-config')) {
-                const configName = this.getAttribute('api-config');
-                const config = window[configName];
-                console.log('API Config:', config);
-                if (config) {
-                    paramName = config.paramName || paramName;
-                    mapperFn = config.mapper;
-                    filterFn = config.filter;
-                }
-            }
-            apiUrl = new URL(url, window.location.origin);
-            apiUrl.searchParams.set(paramName, searchValue);
-            const response = await fetch(apiUrl.toString(), { signal: this.abortController.signal });
-            let data = await response.json();
-            if (typeof mapperFn === 'function')
-                data = mapperFn(data, searchValue);
-            
-            if (typeof filterFn === 'function')
-                data = filterFn(data, searchValue);
-        
-            if (Array.isArray(data)) {
-                this.options = data;
-                this.filteredOptions = [...this.options];
-            }
-        } catch (err) {
-            if (err.name !== 'AbortError')
-                this.error = true;
-
-            console.error('Error fetching options:', err);
-        }
-        finally {
-            this.loading = false;
-            this.renderOptions();
-        }
     }
 
     connectedCallback() {
@@ -227,7 +191,7 @@ export default class SelectInput extends HTMLElement {
         this.toggleBtn = this.shadowRoot.querySelector('.toggle-btn');
         this.dropdown = this.shadowRoot.querySelector('.dropdown');
 
-        window.addEventListener('select-input-opened', this.handleOtherOpened.bind(this));
+        window.addEventListener('select-input-opened', this.handleOtherOpened);
         document.addEventListener('click', this.handleDocumentClick);
         this.addEventListener('focusout', this.handleFocusOut);
 
@@ -235,13 +199,39 @@ export default class SelectInput extends HTMLElement {
             if (!this.hasAttribute('api-url'))
                 this.showDropdown();
         });
-        this.input.addEventListener('input', (e) => this.filterOptions(e.target.value));
+        this.input.addEventListener('input', (e) => {
+            this.filterOptions(e.target.value);
+            if (e.target.value === '') {
+                this._lastSelectedValue = '';
+                this.dispatchEvent(new CustomEvent('change', {
+                    detail: {
+                        value: '',
+                        label: ''
+                    }
+                }));
+            }
+        });
         this.input.addEventListener('keydown', this.handleKeyDown);
 
         this.toggleBtn.addEventListener('click', this.handleToggleClick.bind(this));
 
         this.loadOptions();
         this.renderOptions();
+
+        this.addEventListener('change', (ev) => {
+            if (ev.detail && ev.detail.value !== undefined) {
+                this._lastSelectedValue = ev.detail.value;
+            }
+        });
+
+        // Form entegrasyonu: en yakın üst formu bul ve formdata eventinde seçili değeri ekle
+        var form = this.closest('form');
+        if (form && this.getAttribute('name')) {
+            form.addEventListener('formdata', (e) => {
+                var selectedValue = this._lastSelectedValue || '';
+                e.formData.append(this.getAttribute('name'), selectedValue);
+            });
+        }
     }
 
     disconnectedCallback() {
@@ -251,6 +241,34 @@ export default class SelectInput extends HTMLElement {
 
         this.input.removeEventListener('keydown', this.handleKeyDown);
         this.toggleBtn.removeEventListener('click', this.handleToggleClick);
+    }
+
+    async fetchOptionsFromApi(searchValue = '') {
+        try {
+            this.options = await this.dataSource.fetchJson(
+                this.getAttribute('api-url'),
+                searchValue,
+                {},
+                () => {
+                    this.loading = true;
+                    this.error = false;
+                    this.filteredOptions = [];
+                    this.renderOptions();
+                    this.showDropdown();
+                });
+            this.filteredOptions = [...this.options];
+        } catch (err) {
+            this.error = true;
+        } finally {
+            this.loading = false;
+            this.renderOptions();
+        }
+    }
+
+    handleOtherOpened = (e) => {
+        if (e.detail && e.detail.sender !== this) {
+            this.hideDropdown();
+        }
     }
 
     handleDocumentClick = (e) => {
@@ -306,6 +324,7 @@ export default class SelectInput extends HTMLElement {
 
     showDropdown() {
         window.dispatchEvent(new CustomEvent('select-input-opened', { detail: { sender: this } }));
+        
         this.dropdown.classList.add('open');
         this.input.setAttribute('aria-expanded', 'true');
         if (this.highlightedIndex >= 0) {
@@ -334,18 +353,7 @@ export default class SelectInput extends HTMLElement {
 
     filterOptions(value) {
         if (this.hasAttribute('api-url')) {
-            clearTimeout(this.debounceTimeout);
-            if (value.length >= 3) {
-                //this.error = false;
-                //this.renderOptions();
-                this.debounceTimeout = setTimeout(() => {
-                    this.fetchOptionsFromApi(this.getAttribute('api-url'), value);
-                }, 400);
-            } else {
-                //this.filteredOptions = [];
-                //this.error = false;
-                //this.renderOptions();
-            }
+            this.fetchOptionsFromApi(value);
         } else {
             this.filteredOptions = this.options.filter(opt =>
                 opt.label.toLowerCase().includes(value.toLowerCase())
@@ -368,7 +376,7 @@ export default class SelectInput extends HTMLElement {
             this.dropdown.innerHTML = '<div class="empty-box"><span class="empty-icon"></span>Sonuç yok</div>';
             return;
         }
-       
+
         this.dropdown.innerHTML = this.filteredOptions.map((opt, idx) =>
             `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" role="option" id="option-${idx}" aria-selected="${idx === this.highlightedIndex}" data-value="${opt.value}">${opt.label}</div>`
         ).join('');
@@ -390,6 +398,9 @@ export default class SelectInput extends HTMLElement {
     handleToggleClick(e) {
         e.stopPropagation();
         if (!this.dropdown.classList.contains('open')) {
+            if (this.hasAttribute('api-url') && this.options.length === 0)
+                this.fetchOptionsFromApi();
+
             this.showDropdown();
             this.input.focus();
         } else {
@@ -403,12 +414,6 @@ export default class SelectInput extends HTMLElement {
                 this.hideDropdown();
             }
         }, 0);
-    }
-
-    handleOtherOpened(e) {
-        if (e.detail && e.detail.sender !== this) {
-            this.hideDropdown();
-        }
     }
 }
 

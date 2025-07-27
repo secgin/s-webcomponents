@@ -17,8 +17,9 @@
 </head>
 
 <body>
+    <form>
     <h1>SelectInput Demo</h1>
-    <select-input>
+    <select-input name="meyve1">
         <select-input-option value="elma" label="Elma"></select-input-option>
         <select-input-option value="armut" label="Armut"></select-input-option>
         <select-input-option value="muz" label="Muz"></select-input-option>
@@ -27,16 +28,14 @@
         <select-input-option value="uzum" label="Üzüm"></select-input-option>
     </select-input>
 
-
     <br /><br /><br />
     <h1>API Url SelectInput Demo</h1>
-    <select-input api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
+    <select-input name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
     </select-input>
-
 
     <br /><br /><br />
     <h1>SelectInput Demo 2</h1>
-    <select-input api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" class="form-control" style="--select-input-padding: .5rem 1rem">
+    <select-input name="urun2" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" class="form-control" style="--select-input-padding: .5rem 1rem">
         <select-input-option value="elma" label="Elma">elma</select-input-option>
         <select-input-option value="armut" label="Armut"></select-input-option>
         <select-input-option value="muz" label="Muz"></select-input-option>
@@ -44,11 +43,27 @@
         <select-input-option value="cilek" label="Çilek"></select-input-option>
         <select-input-option value="uzum" label="Üzüm"></select-input-option>
     </select-input>
+    <button type="submit">Send</button>
+    </form>
 
 
     <script>
-        document.querySelector('select-input').addEventListener('change', (e) => {
-            console.log('Seçilen değer:', e.detail);
+        var form = document.querySelector('form');
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            console.log('Form gönderildi. Seçilen değer:', data);
+        });
+
+        document.querySelectorAll('select-input').forEach(function (el) {
+            el.addEventListener('change', function (e) {
+                var name = el.getAttribute('name');
+                var hidden = form.querySelector('input[type="hidden"][name="' + name + '"]');
+                if (hidden) {
+                    hidden.value = e.detail.value;
+                }
+                console.log('Seçilen değer:', e.detail);
+            });
         });
 
         window.mySelectConfig = {
