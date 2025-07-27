@@ -20,30 +20,30 @@
 <body>
     <form>
     <h1>SelectInput Demo</h1>
-    <select-input name="meyve1">
-        <select-input-option value="elma" label="Elma"></select-input-option>
-        <select-input-option value="armut" label="Armut"></select-input-option>
-        <select-input-option value="muz" label="Muz"></select-input-option>
-        <select-input-option value="karpuz" label="Karpuz"></select-input-option>
-        <select-input-option value="cilek" label="Çilek"></select-input-option>
-        <select-input-option value="uzum" label="Üzüm"></select-input-option>
-    </select-input>
+    <s-select name="meyve1">
+        <s-option value="elma" label="Elma"></s-option>
+        <s-option value="armut" label="Armut"></s-option>
+        <s-option value="muz" label="Muz"></s-option>
+        <s-option value="karpuz" label="Karpuz"></s-option>
+        <s-option value="cilek" label="Çilek"></s-option>
+        <s-option value="uzum" label="Üzüm"></s-option>
+    </s-select>
 
     <br /><br /><br />
     <h1>API Url SelectInput Demo</h1>
-    <select-input name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
-    </select-input>
+    <s-select name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
+    </s-select>
 
     <br /><br /><br />
     <h1>SelectInput Demo 2</h1>
-    <select-input name="urun2" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" class="form-control" style="--select-input-padding: .5rem 1rem">
-        <select-input-option value="elma" label="Elma">elma</select-input-option>
-        <select-input-option value="armut" label="Armut"></select-input-option>
-        <select-input-option value="muz" label="Muz"></select-input-option>
-        <select-input-option value="karpuz" label="Karpuz"></select-input-option>
-        <select-input-option value="cilek" label="Çilek"></select-input-option>
-        <select-input-option value="uzum" label="Üzüm"></select-input-option>
-    </select-input>
+    <s-select name="urun2" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" class="form-control" style="--s-select-padding: .5rem 1rem">
+        <s-option value="elma" label="Elma">elma</s-option>
+        <s-option value="armut" label="Armut"></s-option>
+        <s-option value="muz" label="Muz"></s-option>
+        <s-option value="karpuz" label="Karpuz"></s-option>
+        <s-option value="cilek" label="Çilek"></s-option>
+        <s-option value="uzum" label="Üzüm"></s-option>
+    </s-select>
     <button type="submit">Send</button>
     </form>
 
@@ -56,13 +56,10 @@
             console.log('Form gönderildi. Seçilen değer:', data);
         });
 
-        document.querySelectorAll('select-input').forEach(function (el) {
+        document.querySelectorAll('s-select').forEach(function (el) {
             el.addEventListener('change', function (e) {
                 var name = el.getAttribute('name');
-                var hidden = form.querySelector('input[type="hidden"][name="' + name + '"]');
-                if (hidden) {
-                    hidden.value = e.detail.value;
-                }
+    
                 console.log('Seçilen değer:', e.detail);
             });
         });

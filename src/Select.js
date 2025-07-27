@@ -1,7 +1,7 @@
-import SelectInputOption from './SelectInputOption.js';
+import './Option.js';
 import DataSource from './DataSource.js';
 
-export default class SelectInput extends HTMLElement {
+export default class Select extends HTMLElement {
 
     static getStyles() {
         return `
@@ -11,10 +11,11 @@ export default class SelectInput extends HTMLElement {
                 100% { transform: rotate(360deg); }
             }
             :host {
-                --select-input-option-padding: 4px 4px;
-                --select-input-option-hover-bg: #f0f0f0;
-                --select-input-option-color: inherit;
-                --select-input-padding: 2px 4px;
+                --s-select-option-padding: 4px 4px;
+                --s-select-option-hover-bg: #f0f0f0;
+                --s-select-option-color: inherit;
+                --s-select-padding: 2px 4px;
+                --s-select-arrow-color: #333;
                 position: relative !important;
                 display: inline-block !important;
                 padding: 0 !important;
@@ -47,7 +48,7 @@ export default class SelectInput extends HTMLElement {
                 flex: 1;
                 border: none;
                 outline: none;
-                padding: var(--select-input-padding);
+                padding: var(--s-select-padding);
                 background: transparent;
             }
             .toggle-btn {
@@ -58,6 +59,11 @@ export default class SelectInput extends HTMLElement {
                 padding: 0 6px;
                 display: flex;
                 align-items: center;
+            }
+            .toggle-btn svg {
+                width: 16px;
+                height: 16px;
+                fill: var(--s-select-arrow-color);
             }
             .dropdown {
                 border: inherit;
@@ -83,13 +89,13 @@ export default class SelectInput extends HTMLElement {
                 transform: translateY(0);
             }
             .option {
-                padding: var(--select-input-option-padding);
+                padding: var(--s-select-option-padding);
                 cursor: pointer;
-                color: var(--select-input-option-color);
+                color: var(--s-select-option-color);
             }
             .option:hover, 
             .option.highlighted {
-                background: var(--select-input-option-hover-bg, #f0f0f0);
+                background: var(--s-select-option-hover-bg, #f0f0f0);
             }
             .loading-box {
                 display: flex;
@@ -182,7 +188,7 @@ export default class SelectInput extends HTMLElement {
                 aria-expanded="false" 
                 aria-controls="dropdown-list" />
             <button class="toggle-btn" tabindex="-1" aria-label="Aç/Kapat">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
   <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
 </svg>    
             </button>
@@ -215,7 +221,7 @@ export default class SelectInput extends HTMLElement {
             }
         }
 
-        this.shadowRoot.innerHTML = `${SelectInput.getStyles()}${SelectInput.getTemplate()}`;
+        this.shadowRoot.innerHTML = `${Select.getStyles()}${Select.getTemplate()}`;
     }
 
     connectedCallback() {
@@ -256,7 +262,6 @@ export default class SelectInput extends HTMLElement {
             }
         });
 
-        // Form entegrasyonu: en yakın üst formu bul ve formdata eventinde seçili değeri ekle
         var form = this.closest('form');
         if (form && this.getAttribute('name')) {
             form.addEventListener('formdata', (e) => {
@@ -391,11 +396,12 @@ export default class SelectInput extends HTMLElement {
     }
 
     loadOptions() {
-        const optionElements = Array.from(this.querySelectorAll('select-input-option'));
+        const optionElements = Array.from(this.querySelectorAll('s-option'));
         if (optionElements.length > 0) {
             this.options = optionElements.map(opt => ({
                 value: opt.value,
-                label: opt.label
+                label: opt.label,
+                content: opt.content
             }));
         }
         this.filteredOptions = [...this.options];
@@ -429,7 +435,7 @@ export default class SelectInput extends HTMLElement {
         }
 
         this.dropdown.innerHTML = this.filteredOptions.map((opt, idx) =>
-            `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" role="option" id="option-${idx}" aria-selected="${idx === this.highlightedIndex}" data-value="${opt.value}">${opt.label}</div>`
+            `<div class="option${idx === this.highlightedIndex ? ' highlighted' : ''}" role="option" id="option-${idx}" aria-selected="${idx === this.highlightedIndex}" data-value="${opt.value}">${opt.content ?? opt.label}</div>`
         ).join('');
         this.dropdown.querySelectorAll('.option').forEach((el, idx) => {
             el.addEventListener('click', () => {
@@ -468,4 +474,4 @@ export default class SelectInput extends HTMLElement {
     }
 }
 
-customElements.define('select-input', SelectInput);
+customElements.define('s-select', Select);

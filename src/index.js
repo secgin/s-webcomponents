@@ -1,2 +1,2 @@
-import './SelectInput.js';
-import './SelectInputOption.js'; 
+import './Select.js';
+import './Option.js'; 
