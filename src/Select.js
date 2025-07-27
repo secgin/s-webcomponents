@@ -230,6 +230,7 @@ export default class Select extends HTMLElement {
   <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
 </svg>    
             </button>
+            <slot></slot>
         </div>
         <div class="dropdown" id="dropdown-list" role="listbox" tabindex="-1"></div>`;
     }
@@ -473,7 +474,12 @@ export default class Select extends HTMLElement {
 
     loadOptions() {
         this.options = [];
-        const optionElements = Array.from(this.querySelectorAll('s-option'));
+        // Slot içindeki s-option'ları bul
+        const slot = this.shadowRoot.querySelector('slot');
+        let optionElements = [];
+        if (slot) {
+            optionElements = slot.assignedElements().filter(el => el.tagName === 'S-OPTION');
+        }
         if (optionElements.length > 0) {
             for (const opt of optionElements) {
                 if (opt.hasAttribute('selected')) {
@@ -483,7 +489,6 @@ export default class Select extends HTMLElement {
                         content: opt.content
                     });
                 }
-
                 this.options.push({
                     value: opt.value,
                     label: opt.label,
@@ -614,5 +619,3 @@ export default class Select extends HTMLElement {
         }, 0);
     }
 }
-
-customElements.define('s-select', Select);

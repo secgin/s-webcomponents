@@ -15,5 +15,3 @@ export default class Option extends HTMLElement {
     return this.textContent || this.getAttribute('label') || '';
   }
 }
-
-customElements.define('s-option', Option); 

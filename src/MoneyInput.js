@@ -291,5 +291,3 @@ export default class MoneyInput extends HTMLElement {
         return value.replace(this._valueDecimalSeparator, this._decimalSeparator);
     }
 }
-
-customElements.define('s-money-input', MoneyInput);

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SelectInput Demo</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+
+    <style>
+        body {
+            padding: 2rem;
+        }
+
+        s-select {
+            /*--s-select-padding: 0.5rem;
+            --s-select-option-padding: 0.5rem;
+            
+            border-radius: 0;*/
+        }
+    </style>
+</head>
+
+<body>
+    <form>
+        <s-select name="meyve1">
+            <s-option value="elma" label="Elma"></s-option>
+            <s-option value="armut" label="Armut"></s-option>
+            <s-option value="muz" label="Muz"></s-option>
+            <s-option value="karpuz" label="Karpuz" selected></s-option>
+            <s-option value="cilek" label="Çilek"></s-option>
+            <s-option value="uzum" label="Üzüm"></s-option>
+        </s-select>
+        
+        <br /><br /><br />
+        <h2>Multi Select</h2>
+        <s-select name="meyve2" multi-select>
+            <s-option value="elma" label="Elma" selected></s-option>
+            <s-option value="armut" label="Armut"></s-option>
+            <s-option value="muz" label="Muz" selected></s-option>
+            <s-option value="karpuz" label="Karpuz"></s-option>
+            <s-option value="cilek" label="Çilek"></s-option>
+            <s-option value="uzum" label="Üzüm"></s-option>
+        </s-select>
+
+        <br /><br /><br />
+        <h2>API Url Select Demo</h1>
+        <s-select name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
+            <s-option value="3123123123" label="Seçgin Şanlı" selected></s-option>
+        </s-select>
+
+
+        <br /><br /><br />
+        <h2>API Url Multi Select Demo</h1>
+        <s-select name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" multi-select>
+            <s-option value="3123123123" label="Seçgin Şanlı" selected></s-option>
+        </s-select>
+
+        <br /><br /><br />
+        <h2>Money Input</h1>
+        <s-money-input name="money1" value="1000" currency="TRY"></s-money-input>
+
+        <br /><br /><br />
+        <h2>Money Input</h1>
+        <s-money-input name="money2" value="1000" currency="TRY" exchange-currency="USD"></s-money-input>
+        <button type="submit">Send</button>
+    </form>
+
+
+    <script>
+        var form = document.querySelector('form');
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            console.log('Form gönderildi. Seçilen değer:', data);
+        });
+
+        document.querySelectorAll('s-select').forEach(function (el) {
+            el.addEventListener('change', function (e) {
+                var name = el.getAttribute('name');
+
+                console.log('Seçilen değer:', e.detail);
+            });
+        });
+
+        window.mySelectConfig = {
+            paramName: 'q',
+            mapper: data => data.map(item => ({ value: item.id, label: item.title })),
+            filter: (data, searchValue) => data.filter(item => item.label.toLowerCase().includes(searchValue.toLowerCase()))
+        };
+    </script>
+
+    <script src="../dist/s-webcomponents.umd.min.js"></script>
+</body>
+
+</html>
