@@ -15,10 +15,10 @@
         }
 
         s-select {
-            /*--s-select-padding: 0.5rem;
+            /*--s-select-padding: 0.5rem;*/
             --s-select-option-padding: 0.5rem;
             
-            border-radius: 0;*/
+            border-radius: 0;
             width: 100%;
         }
     </style>
@@ -30,16 +30,16 @@
             <s-option value="elma" label="Elma"></s-option>
             <s-option value="armut" label="Armut"></s-option>
             <s-option value="muz" label="Muz"></s-option>
-            <s-option value="karpuz" label="Karpuz"></s-option>
+            <s-option value="karpuz" label="Karpuz" selected></s-option>
             <s-option value="cilek" label="Çilek"></s-option>
             <s-option value="uzum" label="Üzüm"></s-option>
         </s-select>
         <br /><br /><br />
         <h2>Multi Select</h2>
         <s-select name="meyve2" multi-select>
-            <s-option value="elma" label="Elma"></s-option>
+            <s-option value="elma" label="Elma" selected></s-option>
             <s-option value="armut" label="Armut"></s-option>
-            <s-option value="muz" label="Muz"></s-option>
+            <s-option value="muz" label="Muz" selected></s-option>
             <s-option value="karpuz" label="Karpuz"></s-option>
             <s-option value="cilek" label="Çilek"></s-option>
             <s-option value="uzum" label="Üzüm"></s-option>
@@ -48,12 +48,14 @@
         <br /><br /><br />
         <h2>API Url Select Demo</h1>
         <s-select name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig">
+            <s-option value="3123123123" label="Seçgin Şanlı" selected></s-option>
         </s-select>
 
 
         <br /><br /><br />
         <h2>API Url Multi Select Demo</h1>
         <s-select name="urun1" api-url="https://fakestoreapi.com/products" api-config="mySelectConfig" multi-select>
+            <s-option value="3123123123" label="Seçgin Şanlı" selected></s-option>
         </s-select>
 
         <br /><br /><br />

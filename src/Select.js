@@ -26,6 +26,7 @@ export default class Select extends HTMLElement {
                 color: #333;
             }
             .input-wrapper {
+            padding-right: 30px;
                 display: flex;
                 align-items: stretch;
                 overflow: hidden;
@@ -36,7 +37,8 @@ export default class Select extends HTMLElement {
                 background: inherit;
                 color: inherit;
                 border: none;
-                border-radius: inherit;         
+                border-radius: inherit;
+                position: relative;         
             }
             :host([multi-select]) .input-wrapper {
                 flex-wrap: wrap;               
@@ -62,7 +64,11 @@ export default class Select extends HTMLElement {
                 padding: 0 6px;
                 display: flex;
                 align-items: center;
-            }
+                position: absolute;
+                right: 0;
+                top: 0;
+                height: 100%;
+            }            
             .toggle-btn svg {
                 width: 16px;
                 height: 16px;
@@ -159,10 +165,10 @@ export default class Select extends HTMLElement {
                 align-items: center;
                 background:#e0e0e0;
                 border-radius:inherit;
-                padding:0 3px;
+                padding:var(--s-select-padding);
                 margin:1px 2px;
                 font-size:.95em;
-                vertical-align:middle;
+                vertical-align:middle;            
             }
             .chip-remove {
                 margin-left:4px;
@@ -302,8 +308,8 @@ export default class Select extends HTMLElement {
 
                 if (this.isMulti) {
                     const values = this.selectedValues
-                    .map(v => v.value)
-                    .forEach((val, index) => e.formData.append(`${name}[${index}]`, val));
+                        .map(v => v.value)
+                        .forEach((val, index) => e.formData.append(`${name}[${index}]`, val));
                 } else {
                     const value = this.selectedValues[0]?.value || '';
                     e.formData.append(name, value);
@@ -463,13 +469,24 @@ export default class Select extends HTMLElement {
     }
 
     loadOptions() {
+        this.options = [];
         const optionElements = Array.from(this.querySelectorAll('s-option'));
         if (optionElements.length > 0) {
-            this.options = optionElements.map(opt => ({
-                value: opt.value,
-                label: opt.label,
-                content: opt.content
-            }));
+            for (const opt of optionElements) {
+                if (opt.hasAttribute('selected')) {
+                    this.selectedValues.push({
+                        value: opt.value,
+                        label: opt.label,
+                        content: opt.content
+                    });
+                }
+
+                this.options.push({
+                    value: opt.value,
+                    label: opt.label,
+                    content: opt.content
+                });
+            }
         }
         this.filteredOptions = [...this.options];
     }
@@ -507,6 +524,8 @@ export default class Select extends HTMLElement {
                 return Select.getOptionsTemplate(opt, this.highlightedIndex, idx, isSelected);
             })
             .join('');
+
+        this.updateInputDisplay();
 
         this.dropdown.querySelectorAll('.option').forEach((el, idx) => {
             el.addEventListener('click', () => {
