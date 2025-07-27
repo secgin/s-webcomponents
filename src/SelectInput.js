@@ -23,6 +23,7 @@ export default class SelectInput extends HTMLElement {
                 box-sizing: border-box;
                 border: 1px solid #ccc;
                 border-radius: .2rem;
+                
                 background: #fff;
                 color: #333;
             }
@@ -66,7 +67,7 @@ export default class SelectInput extends HTMLElement {
             .dropdown {
                 border: inherit;
                 border-radius: inherit;
-                background: inherit;
+                background: inherit;               
                 color: inherit;
                 max-height: 150px;
                 overflow-y: auto;
@@ -81,7 +82,7 @@ export default class SelectInput extends HTMLElement {
                 transform: translateY(-8px);
                 transition: opacity 0.2s, transform 0.2s;
             }
-            .dropdown.open {
+            :host([open]) .dropdown {
                 opacity: 1;
                 pointer-events: auto;
                 transform: translateY(0);
@@ -324,8 +325,8 @@ export default class SelectInput extends HTMLElement {
 
     showDropdown() {
         window.dispatchEvent(new CustomEvent('select-input-opened', { detail: { sender: this } }));
-        
-        this.dropdown.classList.add('open');
+
+        this.setAttribute('open', '');         
         this.input.setAttribute('aria-expanded', 'true');
         if (this.highlightedIndex >= 0) {
             this.input.setAttribute('aria-activedescendant', `option-${this.highlightedIndex}`);
@@ -335,7 +336,7 @@ export default class SelectInput extends HTMLElement {
     }
 
     hideDropdown() {
-        this.dropdown.classList.remove('open');
+        this.removeAttribute('open');
         this.input.setAttribute('aria-expanded', 'false');
         this.input.removeAttribute('aria-activedescendant');
     }
@@ -397,7 +398,7 @@ export default class SelectInput extends HTMLElement {
 
     handleToggleClick(e) {
         e.stopPropagation();
-        if (!this.dropdown.classList.contains('open')) {
+        if (!this.hasAttribute('open')) {
             if (this.hasAttribute('api-url') && this.options.length === 0)
                 this.fetchOptionsFromApi();
 
