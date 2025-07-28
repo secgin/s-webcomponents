@@ -1,7 +1,8 @@
 {
-  "name": "s-components",
-  "version": "1.0.0",
+  "name": "s-webcomponents",
+  "version": "1.0.1",
   "main": "rollup.config.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rollup -c rollup.config.js"
@@ -11,13 +12,16 @@
     "url": "git+https://github.com/secgin/s-webcomponents.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Seçgin",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/secgin/s-webcomponents/issues"
   },
   "homepage": "https://github.com/secgin/s-webcomponents#readme",
-  "description": "",
+  "description": "JavaScript web components for common UI elements",
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
